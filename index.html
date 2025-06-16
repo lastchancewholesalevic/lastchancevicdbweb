@@ -1,0 +1,128 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Last Chance Wholesale Victoria Item Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f9f9f9;
+        }
+        header {
+            background-color: #d32f2f;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-size: 1.4rem;
+        }
+        .search-section {
+            background-color: #fff3e0;
+            padding: 20px;
+            text-align: center;
+        }
+        .search-section input {
+            padding: 10px;
+            width: 250px;
+            font-size: 1rem;
+        }
+        .search-section button {
+            padding: 10px 15px;
+            font-size: 1rem;
+            margin-left: 5px;
+        }
+        .result-section {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-top: 2px solid #ccc;
+        }
+        .calculator-section {
+            background-color: #e8f5e9;
+            padding: 20px;
+            border-top: 2px solid #ccc;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 3px 0;
+            padding: 3px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<header>Last Chance Wholesale Victoria Item Search</header>
+
+<div class="search-section">
+    <input id="itemInput" placeholder="Enter item number..." />
+    <button onclick="lookup()">Search</button>
+</div>
+
+<div class="result-section" id="resultBox"></div>
+
+<div class="calculator-section">
+    <label>Qty for Per Unit Price: </label>
+    <input type="number" id="qtyInput" min="1" style="width: 60px;" />
+    <div id="unitPriceBox"></div>
+</div>
+
+<script>
+    let masterData = {};
+    let currentData = null;
+
+    fetch('masterdata_shipping_by_rule.json')
+        .then(res => res.json())
+        .then(data => masterData = data);
+
+    function lookup() {
+        const item = document.getElementById("itemInput").value.trim();
+        const resultBox = document.getElementById("resultBox");
+        const unitBox = document.getElementById("unitPriceBox");
+        resultBox.innerHTML = '';
+        unitBox.innerHTML = '';
+        currentData = null;
+
+        if (!masterData[item]) {
+            resultBox.innerHTML = '<p style="color:red;">Item not found.</p>';
+            return;
+        }
+
+        const data = masterData[item];
+        currentData = data;
+
+        let html = `<p><strong>Item:</strong> ${item}</p>`;
+        html += `<p><strong>Description:</strong> ${data.description}</p>`;
+        html += `<p><strong>Costco Price:</strong> ${data.costcoPrice}</p>`;
+        html += `<p><strong>Great Deal Cost:</strong> ${data.greatDealCost}</p>`;
+        html += `<p><strong>Salvage %:</strong> ${data.salvagePercent}%</p>`;
+        html += `<p><strong>Great Deal Prices (with shipping):</strong></p><ul>`;
+        for (let [key, val] of Object.entries(data.prices)) {
+            html += `<li><strong>${key}:</strong> $${val}</li>`;
+        }
+        html += `</ul>`;
+        resultBox.innerHTML = html;
+    }
+
+    document.getElementById("qtyInput").addEventListener("input", () => {
+        const qty = parseInt(document.getElementById("qtyInput").value);
+        const box = document.getElementById("unitPriceBox");
+        box.innerHTML = '';
+        if (!qty || !currentData) return;
+
+        let ul = document.createElement('ul');
+        for (let [key, val] of Object.entries(currentData.prices)) {
+            if (!val) continue;
+            let li = document.createElement('li');
+            let unit = (val / qty).toFixed(2);
+            li.textContent = `With ${key}: $${val} ÷ ${qty} = $${unit}`;
+            ul.appendChild(li);
+        }
+        box.appendChild(ul);
+    });
+</script>
+
+</body>
+</html>
