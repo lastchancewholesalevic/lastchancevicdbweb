@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Last Chance Wholesale Victoria Item Search</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f9f9f9; }
+    header { background-color: #d32f2f; color: white; padding: 1rem; text-align: center; font-size: 1.4rem; }
+    .search-section { background-color: #fff3e0; padding: 20px; text-align: center; }
+    .search-section input { padding: 10px; width: 250px; font-size: 1rem; }
+    .search-section button { padding: 10px 15px; font-size: 1rem; margin-left: 5px; }
+    .result-section { padding: 20px; border-top: 2px solid #ccc; }
+    .calculator-section { background-color: #e8f5e9; padding: 20px; border-top: 2px solid #ccc; }
+    .record-block { background-color: #fff; margin-bottom: 15px; padding: 15px; border-left: 5px solid #d32f2f; border-radius: 6px; }
+    ul { padding-left: 20px; }
+    li { margin: 3px 0; padding: 5px 10px; border-radius: 4px; }
+    .block-label { font-weight: bold; font-size: 1.1rem; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+
+<header>Last Chance Wholesale Victoria Item Search</header>
+
+<div class="search-section">
+  <input id="itemInput" placeholder="Enter item number..." />
+  <button onclick="lookup()">Search</button>
+</div>
+
+<div class="result-section" id="resultBox"></div>
+
+<div class="calculator-section">
+  <label>Qty for Per Unit Price: </label>
+  <input type="number" id="qtyInput" min="1" style="width: 60px;" />
+  <div id="unitPriceBox"></div>
+</div>
+
+<script>
+let masterData = {};
+let currentRecords = [];
+
+const colorMap = {
+  "10%": "#fff8e1",
+  "15%": "#e8f5e9",
+  "20%": "#e3f2fd",
+  "25%": "#fce4ec",
+  "30%": "#ede7f6",
+  "40%": "#f3e5f5",
+  "50%": "#e0f2f1"
+};
+
+const labelMap = {
+  "10%": "LEGOS",
+  "15%": "Janitorial",
+  "20%": "FOOD",
+  "25%": "Other Items",
+  "30%": "Shoes",
+  "40%": "Clothing",
+  "50%": "Books"
+};
+
+fetch('masterdata_grouped_by_item.json')
+  .then(res => res.json())
+  .then(data => masterData = data);
+
+document.getElementById("itemInput").addEventListener("keypress", function(e) {
+  if (e.key === "Enter") {
+    lookup();
+  }
+});
+
+function lookup() {
+  const item = document.getElementById("itemInput").value.trim().toString();
+  const resultBox = document.getElementById("resultBox");
+  const unitBox = document.getElementById("unitPriceBox");
+  resultBox.innerHTML = '';
+  unitBox.innerHTML = '';
+  currentRecords = [];
+
+  if (!masterData[item]) {
+    resultBox.innerHTML = '<p style="color:red;">Item not found.</p>';
+    return;
+  }
+
+  currentRecords = masterData[item];
+  let html = `<p><strong>Found ${currentRecords.length} record(s) for item:</strong> ${item}</p>`;
+
+  currentRecords.forEach((data, index) => {
+    html += `<div class="record-block">`;
+    html += `<p class="block-label">Record ${index + 1}</p>`;
+    html += `<p><strong>Description:</strong> ${data.description}</p>`;
+    html += `<p><strong>Costco Price:</strong> ${data.costcoPrice}</p>`;
+    html += `<p><strong>Great Deal Cost:</strong> ${data.greatDealCost}</p>`;
+    html += `<p><strong>Salvage %:</strong> ${data.salvagePercent}%</p>`;
+    html += `<p><strong>Prices (with shipping):</strong></p><ul>`;
+    for (let [key, val] of Object.entries(data.prices)) {
+      let color = colorMap[key] || '#eee';
+      let label = labelMap[key] || '';
+      html += `<li style="background-color:${color};"><strong>${key} (${label}):</strong> ${val}</li>`;
+    }
+    html += `</ul></div>`;
+  });
+
+  resultBox.innerHTML = html;
+}
+
+document.getElementById("qtyInput").addEventListener("input", () => {
+  const qty = parseInt(document.getElementById("qtyInput").value);
+  const box = document.getElementById("unitPriceBox");
+  box.innerHTML = '';
+  if (!qty || currentRecords.length === 0) return;
+
+  currentRecords.forEach((data, index) => {
+    let ul = document.createElement('ul');
+    let label = document.createElement('p');
+    label.innerHTML = `<strong>Record ${index + 1} (${data.description}):</strong>`;
+    ul.appendChild(label);
+    for (let [key, val] of Object.entries(data.prices)) {
+      if (!val) continue;
+      let unit = (val / qty).toFixed(2);
+      let li = document.createElement('li');
+      li.style.backgroundColor = colorMap[key] || "#eeeeee";
+      li.textContent = `With ${key} (${labelMap[key]}): ${val} ÷ ${qty} = ${unit}`;
+      ul.appendChild(li);
+    }
+    box.appendChild(ul);
+  });
+});
+</script>
+
+</body>
+</html>
